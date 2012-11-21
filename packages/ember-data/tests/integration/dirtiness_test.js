@@ -15,6 +15,15 @@ module("Attribute Changes and Dirtiness", {
   }
 });
 
+test("By default, if a record's attribute is changed, it becomes dirty", function() {
+  store.load(Person, { id: 1, firstName: "Yehuda" });
+  var wycats = store.find(Person, 1);
+
+  wycats.set('firstName', "Brohuda");
+
+  ok(wycats.get('isDirty'), "record has become dirty");
+});
+
 test("If dirtyRecordsForAttributeChange does not add the record to the dirtyRecords set, it does not become dirty", function() {
   store.load(Person, { id: 1, firstName: "Yehuda" });
   var wycats = store.find(Person, 1);

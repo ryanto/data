@@ -872,11 +872,6 @@ DS.Store = Ember.Object.extend(DS._Mappable, {
     }
 
     if (data) {
-      // We're about to replace all existing attributes and relationships
-      // because we have new data, so clear out any remaining unacknowledged
-      // changes.
-
-      record.removeInFlightDirtyFactorsForAttributes();
       this.updateId(record, data);
       this.updateRecordData(record, data);
     } else {
@@ -1619,6 +1614,13 @@ DS.Store = Ember.Object.extend(DS._Mappable, {
     if (adapter) { return adapter; }
 
     return this.get('_adapter');
+  },
+
+  // ..............................
+  // . RECORD CHANGE NOTIFICATION .
+  // ..............................
+  recordAttributeDidChange: function(record, attributeName) {
+
   }
 });
 

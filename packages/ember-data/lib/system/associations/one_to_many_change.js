@@ -133,18 +133,6 @@ DS.OneToManyChange.prototype = {
 
     store.removeRelationshipChangeFor(childClientId, belongsToName);
 
-    if (child = this.getChild()) {
-      child.removeDirtyFactor(belongsToName);
-    }
-
-    if (oldParent = this.getOldParent()) {
-      oldParent.removeDirtyFactor(hasManyName);
-    }
-
-    if (newParent = this.getNewParent()) {
-      newParent.removeDirtyFactor(hasManyName);
-    }
-
     if (transaction = this.transaction) {
       transaction.relationshipBecameClean(this);
     }
@@ -289,10 +277,6 @@ DS.OneToManyChange.prototype = {
     //    removing it from the old parent first.
     if (oldParent && oldParent !== newParent) {
       get(oldParent, hasManyName).removeObject(child);
-
-      if (get(oldParent, 'isLoaded')) {
-        oldParent.addDirtyFactor(hasManyName);
-      }
     }
 
     // If there is a `newParent`, use the idempotent `addObject`
@@ -301,10 +285,6 @@ DS.OneToManyChange.prototype = {
     // belongsTo side.
     if (newParent) {
       get(newParent, hasManyName).addObject(child);
-
-      if (get(newParent, 'isLoaded')) {
-        newParent.addDirtyFactor(hasManyName);
-      }
     }
 
     if (child) {
@@ -313,10 +293,6 @@ DS.OneToManyChange.prototype = {
       // ManyArray side.
       if (get(child, belongsToName) !== newParent) {
         set(child, belongsToName, newParent);
-      }
-
-      if (get(child, 'isLoaded')) {
-        child.addDirtyFactor(belongsToName);
       }
     }
 
@@ -333,9 +309,6 @@ DS.OneToManyChange.prototype = {
     var hasManyName = this.getHasManyName();
     var oldParent, newParent, child;
 
-    if (oldParent = this.getOldParent()) { oldParent.removeInFlightDirtyFactor(hasManyName); }
-    if (newParent = this.getNewParent()) { newParent.removeInFlightDirtyFactor(hasManyName); }
-    if (child = this.getChild())         { child.removeInFlightDirtyFactor(belongsToName); }
     this.destroy();
   },
 

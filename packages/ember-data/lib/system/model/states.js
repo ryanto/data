@@ -180,18 +180,11 @@ var didChangeData = function(manager) {
 };
 
 var setProperty = function(manager, context) {
-  var value = context.value,
-      key = context.key,
+  var store = get(manager, 'store'),
       record = get(manager, 'record'),
-      adapterValue = get(record, 'data.attributes')[key];
+      key = context.key;
 
-  if (value === adapterValue) {
-    record.removeDirtyFactor(key);
-  } else {
-    record.addDirtyFactor(key);
-  }
-
-  updateRecordArrays(manager);
+  store.recordAttributeDidChange(record, key);
 };
 
 // Whenever a property is set, recompute all dependent filters
@@ -327,7 +320,6 @@ var DirtyState = DS.State.extend({
       var dirtyType = get(this, 'dirtyType'),
           record = get(manager, 'record');
 
-      // create inFlightDirtyFactors
       record.becameInFlight();
 
       record.withTransaction(function (t) {
@@ -352,8 +344,6 @@ var DirtyState = DS.State.extend({
       var record = get(manager, 'record');
 
       set(record, 'errors', errors);
-
-      record.restoreDirtyFactors();
 
       manager.transitionTo('invalid');
       manager.send('invokeLifecycleCallbacks');
@@ -424,18 +414,7 @@ var createdState = DirtyState.create({
   dirtyType: 'created',
 
   // FLAGS
-  isNew: true,
-
-  // TRANSITIONS
-  setup: function(manager) {
-    var record = get(manager, 'record');
-    record.addDirtyFactor('@created');
-  },
-
-  exit: function(manager) {
-    var record = get(manager, 'record');
-    record.removeDirtyFactor('@created');
-  }
+  isNew: true
 });
 
 var updatedState = DirtyState.create({
@@ -617,15 +596,7 @@ var states = {
         var record = get(manager, 'record'),
             store = get(record, 'store');
 
-        record.addDirtyFactor('@deleted');
-
         store.removeFromRecordArrays(record);
-      },
-
-      exit: function(manager) {
-        var record = get(manager, 'record');
-
-        record.removeDirtyFactor('@deleted');
       },
 
       // SUBSTATES
@@ -675,7 +646,6 @@ var states = {
         enter: function(manager) {
           var record = get(manager, 'record');
 
-          // create inFlightDirtyFactors
           record.becameInFlight();
 
           record.withTransaction(function (t) {
