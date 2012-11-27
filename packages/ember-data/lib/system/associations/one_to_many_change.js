@@ -16,12 +16,19 @@ DS.OneToManyChange.create = function(options) {
 
 /** @private */
 DS.OneToManyChange.forChildAndParent = function(childClientId, store, options) {
+  // Get the type of the child based on the child's client ID
   var childType = store.typeForClientId(childClientId), key;
 
+  // If the name of the belongsTo side of the relationship is specified,
+  // use that
+  // If the type of the parent is specified, look it up on the child's type
+  // definition.
   if (options.parentType) {
     key = inverseBelongsToName(options.parentType, childType, options.hasManyName);
-  } else {
+  } else if (options.belongsToName) {
     key = options.belongsToName;
+  } else {
+    Ember.assert("You must pass either a parentType or belongsToName option to OneToManyChange.forChildAndParent", false);
   }
 
   var change = store.relationshipChangeFor(childClientId, key);

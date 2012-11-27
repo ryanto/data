@@ -208,6 +208,13 @@ DS.Transaction = Ember.Object.extend({
       if (adapter && adapter.commit) { adapter.commit(store, commitDetails); }
       else { throw fmt("Adapter is either null or does not implement `commit` method", this); }
     }
+
+    // Once we've committed the transaction, there is no need to
+    // keep the OneToManyChanges around. Destroy them so they
+    // can be garbage collected.
+    relationships.forEach(function(relationship) {
+      relationship.destroy();
+    });
   },
 
   /**
