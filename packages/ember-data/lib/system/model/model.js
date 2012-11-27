@@ -103,8 +103,8 @@ DS.Model = Ember.Object.extend(Ember.Evented, {
     this.send('didChangeData');
   },
 
-  setProperty: function(key, value) {
-    this.send('setProperty', { key: key, value: value });
+  setProperty: function(key, value, oldValue) {
+    this.send('setProperty', { key: key, value: value, oldValue: oldValue });
   },
 
   deleteRecord: function() {
@@ -140,6 +140,12 @@ DS.Model = Ember.Object.extend(Ember.Evented, {
       attributes[name] = get(this, name);
     }, this);
 
+    this.send('didCommit');
+    this.updateRecordArraysLater();
+  },
+
+  adapterDidDirty: function() {
+    this.send('becomeDirty');
     this.updateRecordArraysLater();
   },
 
@@ -289,14 +295,6 @@ DS.Model = Ember.Object.extend(Ember.Evented, {
       set(cachedValue, 'isLoaded', true);
     }
 
-    this.updateRecordArraysLater();
-  },
-
-  adapterDidDelete: function() {
-    this.updateRecordArraysLater();
-  },
-
-  adapterDidCreate: function() {
     this.updateRecordArraysLater();
   },
 

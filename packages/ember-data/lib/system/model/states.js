@@ -180,11 +180,13 @@ var didChangeData = function(manager) {
 };
 
 var setProperty = function(manager, context) {
-  var store = get(manager, 'store'),
-      record = get(manager, 'record'),
-      key = context.key;
+  var record = get(manager, 'record'),
+      store = get(record, 'store'),
+      key = context.key,
+      oldValue = context.oldValue,
+      newValue = context.value;
 
-  store.recordAttributeDidChange(record, key);
+  store.recordAttributeDidChange(record, key, newValue, oldValue);
 };
 
 // Whenever a property is set, recompute all dependent filters
@@ -276,6 +278,8 @@ var DirtyState = DS.State.extend({
 
     // EVENTS
     setProperty: setProperty,
+
+    becomeDirty: Ember.K,
 
     willCommit: function(manager) {
       manager.transitionTo('inFlight');
@@ -389,6 +393,8 @@ var DirtyState = DS.State.extend({
 
       setProperty(manager, context);
     },
+
+    becomeDirty: Ember.K,
 
     rollback: function(manager) {
       manager.send('becameValid');
@@ -523,7 +529,7 @@ var states = {
         didChangeData: didChangeData,
         loadedData: didChangeData,
 
-        becameDirty: function(manager) {
+        becomeDirty: function(manager) {
           manager.transitionTo('updated');
         },
 
@@ -622,6 +628,8 @@ var states = {
         rollback: function(manager) {
           get(manager, 'record').rollback();
         },
+
+        becomeDirty: Ember.K,
 
         becameClean: function(manager) {
           var record = get(manager, 'record');

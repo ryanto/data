@@ -267,6 +267,8 @@ DS.OneToManyChange.prototype = {
     // infinite loop.
 
 
+    var dirtySet = new Ember.OrderedSet();
+
     // If there is an `oldParent` and the `oldParent` is different to
     // the `newParent`, use the idempotent `removeObject` to ensure
     // that the record is no longer in its ManyArray. The `removeObject`
@@ -277,6 +279,15 @@ DS.OneToManyChange.prototype = {
     //    removing it from the old parent first.
     if (oldParent && oldParent !== newParent) {
       get(oldParent, hasManyName).removeObject(child);
+
+      // TODO: This implementation causes a race condition in key-value
+      // stores. The fix involves buffering changes that happen while
+      // a record is loading. A similar fix is required for other parts
+      // of ember-data, and should be done as new infrastructure, not
+      // a one-off hack. [tomhuda]
+      if (get(oldParent, 'isLoaded')) {
+        this.store.recordHasManyDidChange(dirtySet, oldParent, this);
+      }
     }
 
     // If there is a `newParent`, use the idempotent `addObject`
@@ -285,6 +296,10 @@ DS.OneToManyChange.prototype = {
     // belongsTo side.
     if (newParent) {
       get(newParent, hasManyName).addObject(child);
+
+      if (get(newParent, 'isLoaded')) {
+        this.store.recordHasManyDidChange(dirtySet, newParent, this);
+      }
     }
 
     if (child) {
@@ -294,7 +309,13 @@ DS.OneToManyChange.prototype = {
       if (get(child, belongsToName) !== newParent) {
         set(child, belongsToName, newParent);
       }
+
+      this.store.recordBelongsToDidChange(dirtySet, child, this);
     }
+
+    dirtySet.forEach(function(record) {
+      record.adapterDidDirty();
+    });
 
     // If this change is later reversed (A->B followed by B->A),
     // we will need to remove the child from this parent. Save

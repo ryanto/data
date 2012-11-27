@@ -24,6 +24,38 @@ test("By default, if a record's attribute is changed, it becomes dirty", functio
   ok(wycats.get('isDirty'), "record has become dirty");
 });
 
+test("By default, a newly created record is dirty", function() {
+  var wycats = store.createRecord(Person);
+
+  ok(wycats.get('isDirty'), "record is dirty");
+});
+
+test("By default, changing the relationship between two records does not cause them to become dirty", function() {
+  adapter.dirtyRecordsForHasManyChange = Ember.K;
+  adapter.dirtyRecordsForBelongsToChange = Ember.K;
+
+  var Post = DS.Model.extend();
+
+  var Comment = DS.Model.extend({
+    post: DS.belongsTo(Post)
+  });
+
+  Post.reopen({
+    comments: DS.hasMany(Comment)
+  });
+
+  store.load(Post, { id: 1, comments: [1] });
+  store.load(Comment, { id: 1, post: 1 });
+
+  var post = store.find(Post, 1);
+  var comment = store.find(Comment, 1);
+
+  comment.set('post', null);
+
+  ok(!post.get('isDirty'), "post should not be dirty");
+  ok(!comment.get('isDirty'), "comment should not be dirty");
+});
+
 test("If dirtyRecordsForAttributeChange does not add the record to the dirtyRecords set, it does not become dirty", function() {
   store.load(Person, { id: 1, firstName: "Yehuda" });
   var wycats = store.find(Person, 1);
