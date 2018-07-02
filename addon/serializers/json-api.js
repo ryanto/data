@@ -536,8 +536,9 @@ const JSONAPISerializer = JSONSerializer.extend({
 
     if (this._canSerialize(key)) {
       let belongsTo = snapshot.belongsTo(key);
-      if (belongsTo !== undefined) {
+      let belongsToIsNotNew = belongsTo && belongsTo.record && !belongsTo.record.get('isNew');
 
+      if (belongsTo === null || belongsToIsNotNew) {
         json.relationships = json.relationships || {};
 
         let payloadKey = this._getMappedKey(key, snapshot.type);
@@ -556,7 +557,7 @@ const JSONAPISerializer = JSONSerializer.extend({
             if (payloadType !== deprecatedPayloadTypeLookup && this._hasCustomPayloadKeyFromModelName()) {
               deprecate("You used payloadKeyFromModelName to serialize type for belongs-to relationship. Use payloadTypeFromModelName instead.", false, {
                 id: 'ds.json-api-serializer.deprecated-payload-type-for-belongs-to',
-                until: '3.0.0'
+                until: '4.0.0'
               });
 
               payloadType = deprecatedPayloadTypeLookup;
@@ -578,12 +579,8 @@ const JSONAPISerializer = JSONSerializer.extend({
 
   serializeHasMany(snapshot, json, relationship) {
     let key = relationship.key;
-    let shouldSerializeHasMany = '_shouldSerializeHasMany';
-    if (isEnabled("ds-check-should-serialize-relationships")) {
-      shouldSerializeHasMany = 'shouldSerializeHasMany';
-    }
 
-    if (this[shouldSerializeHasMany](snapshot, key, relationship)) {
+    if (this.shouldSerializeHasMany(snapshot, key, relationship)) {
       let hasMany = snapshot.hasMany(key);
       if (hasMany !== undefined) {
 
@@ -594,28 +591,13 @@ const JSONAPISerializer = JSONSerializer.extend({
           payloadKey = this.keyForRelationship(key, 'hasMany', 'serialize');
         }
 
-        let data = new Array(hasMany.length);
+        // only serialize has many relationships that are not new
+        let nonNewHasMany = hasMany.filter(item => item.record && !item.record.get('isNew'));
+        let data = new Array(nonNewHasMany.length);
 
-        for (let i = 0; i < hasMany.length; i++) {
+        for (let i = 0; i < nonNewHasMany.length; i++) {
           let item = hasMany[i];
-
-          let payloadType;
-
-          if (isEnabled("ds-payload-type-hooks")) {
-            payloadType = this.payloadTypeFromModelName(item.modelName);
-            let deprecatedPayloadTypeLookup = this.payloadKeyFromModelName(item.modelName);
-
-            if (payloadType !== deprecatedPayloadTypeLookup && this._hasCustomPayloadKeyFromModelName()) {
-              deprecate("You used payloadKeyFromModelName to serialize type for belongs-to relationship. Use payloadTypeFromModelName instead.", false, {
-                id: 'ds.json-api-serializer.deprecated-payload-type-for-has-many',
-                until: '3.0.0'
-              });
-
-              payloadType = deprecatedPayloadTypeLookup;
-            }
-          } else {
-            payloadType = this.payloadKeyFromModelName(item.modelName);
-          }
+          let payloadType = this.payloadKeyFromModelName(item.modelName);
 
           data[i] = {
             type: payloadType,
@@ -627,6 +609,7 @@ const JSONAPISerializer = JSONSerializer.extend({
       }
     }
   }
+
 });
 
 if (isEnabled("ds-payload-type-hooks")) {
